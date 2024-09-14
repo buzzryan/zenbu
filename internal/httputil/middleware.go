@@ -13,14 +13,29 @@ import (
 	"github.com/buzzryan/zenbu/internal/logutil"
 )
 
-var contentTypesAllowedToLog = []string{
-	MIMETypeApplicationForm, MIMETypeApplicationJSON, MIMETypeTextPlain,
+// WithGlobalMiddlewares wraps http.Handler with global(common) middlewares.
+func WithGlobalMiddlewares(handler http.Handler) http.Handler {
+	return &tracer{
+		Handler: &reqLogger{
+			Handler: &recovery{
+				Handler: handler,
+			},
+		},
+	}
 }
 
 type reqLogger struct {
 	http.Handler
 }
 
+// loggableContentTypes is a list of content types that can be logged.
+// It is recommended to log only text-based content types. (e.g. application/json, text/plain)
+// Media types like a File should not be logged. It can be issues with performance and security.
+var loggableContentTypes = []string{
+	MIMETypeApplicationForm, MIMETypeApplicationJSON, MIMETypeTextPlain,
+}
+
+// responseWriter is middleware for log request and response.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
@@ -37,7 +52,8 @@ func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		err  error
 	)
 
-	if slices.Contains(contentTypesAllowedToLog, req.Header.Get(ContentType)) {
+	// It logs request body if it is loggable.
+	if slices.Contains(loggableContentTypes, req.Header.Get(ContentType)) {
 		body, err = io.ReadAll(req.Body)
 		if err != nil {
 			logutil.From(req.Context()).With("err", err).Error(
@@ -56,6 +72,9 @@ func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	).Info("request")
 }
 
+// tracer is middleware for tracing request.
+// It injects logger to context with correlation ID and request scoped information for tracing.
+// Correlation ID will be created if request header doesn't include that.
 type tracer struct {
 	http.Handler
 }
@@ -79,6 +98,7 @@ func (t *tracer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	))
 }
 
+// recovery is middleware for recover from unexpected panic so that prevents the server from fault.
 type recovery struct {
 	http.Handler
 }

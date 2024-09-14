@@ -13,12 +13,23 @@ import (
 
 	"github.com/buzzryan/zenbu/internal/httputil"
 	"github.com/buzzryan/zenbu/internal/logutil"
+	userctrl "github.com/buzzryan/zenbu/internal/user/controller"
+	userinfra "github.com/buzzryan/zenbu/internal/user/infra"
 )
 
 func main() {
 	logutil.InitDefaultLogger()
 
 	mux := http.NewServeMux()
+
+	userRepo := userinfra.NewUserRepo()
+	tokenManager := userinfra.NewJWSTokenManager()
+	userctrl.Init(&userctrl.InitOpts{
+		Mux:          mux,
+		UserRepo:     userRepo,
+		TokenManager: tokenManager,
+	})
+
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: httputil.WithGlobalMiddlewares(mux),
