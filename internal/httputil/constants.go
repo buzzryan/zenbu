@@ -6,6 +6,11 @@ import "errors"
 const (
 	ContentType   = "Content-Type"
 	CorrelationID = "Correlation-Id"
+	Authorization = "Authorization"
+)
+
+const (
+	Bearer = "Bearer"
 )
 
 /* MIME Types */
@@ -20,6 +25,8 @@ const (
 	CodeInvalidRequestParams = 1000 // Invalid request parameters (body, query, path param, etc.)
 	CodeInvalidContentType   = 1001
 	CodeInvalidJSONBody      = 1002
+	CodeUnauthenticated      = 1003
+	CodeTokenExpired         = 1004
 )
 
 /* Common Errors */

@@ -14,6 +14,7 @@ import (
 
 const (
 	CodeUsernameAlreadyExists = 2000
+	CodeUserNotFound          = 2001
 )
 
 // BasicSignupCtrl is a controller for basic signup.
@@ -53,4 +54,46 @@ func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error
 	}
 
 	return httputil.ResponseJSON(w, http.StatusOK, res)
+}
+
+type AuthenticateCtrl struct {
+	uc usecase.AuthenticateUC
+}
+
+func NewAuthenticateCtrl(uc usecase.AuthenticateUC) *AuthenticateCtrl {
+	return &AuthenticateCtrl{uc: uc}
+}
+
+type AuthenticateRes struct {
+	Token    string `json:"token"`
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+}
+
+func (a *AuthenticateCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
+	token, err := httputil.GetBearerToken(req)
+	if err != nil {
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
+	}
+
+	res, err := a.uc.Execute(req.Context(), token)
+	if errors.Is(err, usecase.ErrInvalidToken) {
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
+	}
+	if errors.Is(err, usecase.ErrTokenExpired) {
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeTokenExpired, err.Error())
+	}
+	if errors.Is(err, domain.ErrUserNotFound) {
+		return httputil.ResponseError(w, http.StatusNotFound, CodeUserNotFound, err.Error())
+	}
+	if err != nil {
+		logutil.From(req.Context()).Error("failed to execute Authenticate", slog.Any("err", err))
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+	}
+
+	return httputil.ResponseJSON(w, http.StatusOK, &AuthenticateRes{
+		Token:    res.RefreshedToken,
+		UserID:   res.User.ID.String(),
+		Username: res.User.Username,
+	})
 }

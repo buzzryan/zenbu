@@ -95,3 +95,19 @@ func RegisterHandler(mux *http.ServeMux, method string, pattern string, handler 
 		}
 	})
 }
+
+// GetBearerToken is a helper function to get bearer token from Authorization header.
+// If Authorization header is not found or invalid, it returns error.
+func GetBearerToken(req *http.Request) (string, error) {
+	authHeader := req.Header.Get(Authorization)
+	if authHeader == "" {
+		return "", errors.New("authorization header not found")
+	}
+
+	authParts := strings.Split(authHeader, " ")
+	if len(authParts) != 2 || authParts[0] != Bearer {
+		return "", errors.New("invalid bearer authorization header")
+	}
+
+	return authParts[1], nil
+}

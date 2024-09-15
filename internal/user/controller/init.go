@@ -18,6 +18,10 @@ func Init(opts *InitOpts) {
 	basicSignupUC := usecase.NewBasicSignupUC(opts.UserRepo, opts.TokenManager)
 	basicSignupCtrl := NewBasicSignupCtrl(basicSignupUC)
 
+	authenticateUC := usecase.NewAuthenticateUC(opts.UserRepo, opts.TokenManager)
+	authenticateCtrl := NewAuthenticateCtrl(authenticateUC)
+
 	// register routers
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/signup", basicSignupCtrl.Handle)
+	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/authenticate", authenticateCtrl.Handle)
 }
