@@ -11,8 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/buzzryan/zenbu/internal/config"
 	"github.com/buzzryan/zenbu/internal/httputil"
 	"github.com/buzzryan/zenbu/internal/logutil"
+	"github.com/buzzryan/zenbu/internal/rdbutil"
 	userctrl "github.com/buzzryan/zenbu/internal/user/controller"
 	userinfra "github.com/buzzryan/zenbu/internal/user/infra"
 )
@@ -20,10 +22,14 @@ import (
 func main() {
 	logutil.InitDefaultLogger()
 
+	cfg := config.LoadConfigFromEnv()
+	rdb := rdbutil.MustConnectMySQL(cfg.MySQLConfig)
+	slog.Info("mysql connected")
+
 	mux := http.NewServeMux()
 
-	userRepo := userinfra.NewUserRepo()
-	tokenManager := userinfra.NewJWSTokenManager()
+	userRepo := userinfra.NewUserRepo(rdb)
+	tokenManager := userinfra.NewJWSTokenManager(cfg.JWSSigningKey)
 	userctrl.Init(&userctrl.InitOpts{
 		Mux:          mux,
 		UserRepo:     userRepo,

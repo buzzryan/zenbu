@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"bytes"
 	"io"
 	"log/slog"
 	"net/http"
@@ -60,6 +61,8 @@ func (rl *reqLogger) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				"failed to read request body",
 			)
 		}
+		// body is read and closed, so it should be set again to req.Body.
+		req.Body = io.NopCloser(bytes.NewBuffer(body))
 	}
 
 	writer := &responseWriter{ResponseWriter: w}

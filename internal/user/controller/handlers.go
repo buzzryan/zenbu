@@ -36,6 +36,13 @@ func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error
 		return httputil.HandleParseJSONBodyError(req.Context(), w, err)
 	}
 
+	logutil.From(req.Context()).Info("Basic Signup", slog.Any("req", reqBody))
+
+	// fixme: use validator to reduce boilerplate
+	if reqBody.Username == "" || reqBody.Password == "" {
+		return httputil.ResponseError(w, http.StatusBadRequest, 0, "username and password is required")
+	}
+
 	res, err := b.uc.Execute(req.Context(), &usecase.SignupReq{
 		Username: reqBody.Username,
 		Password: reqBody.Password,

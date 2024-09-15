@@ -26,7 +26,7 @@ func ParseJSONBody(r *http.Request, v interface{}) error {
 	}
 
 	if err = json.Unmarshal(body, v); err != nil {
-		return errors.Join(ErrInvalidContentType, err)
+		return fmt.Errorf("%w: %w", ErrInvalidJSONBody, err)
 	}
 
 	return nil
