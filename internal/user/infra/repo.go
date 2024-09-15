@@ -58,3 +58,15 @@ func (ur *userRepo) Create(ctx context.Context, u *domain.User) (*domain.User, e
 	}
 	return record.toDomainEntity(), nil
 }
+
+func (ur *userRepo) Get(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	var record User
+	res := ur.db.WithContext(ctx).First(&record, "id = ?", gormtypes.UUID(id))
+	if errors.Is(res.Error, gorm.ErrRecordNotFound) {
+		return nil, domain.ErrUserNotFound
+	}
+	if res.Error != nil {
+		return nil, fmt.Errorf("failed to get user: %w", res.Error)
+	}
+	return record.toDomainEntity(), nil
+}
