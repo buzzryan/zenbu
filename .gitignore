@@ -27,3 +27,6 @@ go.work.sum
 # IDE file
 .idea
 .vscode
+
+# air file
+/tmp

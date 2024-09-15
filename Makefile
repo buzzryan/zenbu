@@ -12,3 +12,5 @@ local-db-migrate:
 local:
 	set -a; source .env; set +a; export MYSQL_ENDPOINT=localhost:3306; go run cmd/server/main.go
 
+local-air:
+	air
