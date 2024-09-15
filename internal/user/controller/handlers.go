@@ -12,6 +12,10 @@ import (
 	"github.com/buzzryan/zenbu/internal/validutil"
 )
 
+const (
+	CodeUsernameAlreadyExists = 2000
+)
+
 // BasicSignupCtrl is a controller for basic signup.
 type BasicSignupCtrl struct {
 	uc usecase.BasicSignupUC
@@ -25,10 +29,6 @@ type BasicSignupReq struct {
 func NewBasicSignupCtrl(uc usecase.BasicSignupUC) *BasicSignupCtrl {
 	return &BasicSignupCtrl{uc: uc}
 }
-
-const (
-	CodeUsernameAlreadyExists = 2000
-)
 
 func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
 	var reqBody BasicSignupReq
