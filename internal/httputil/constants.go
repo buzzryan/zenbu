@@ -17,8 +17,9 @@ const (
 
 /* Common Error Codes. 1000 - 1999 is reserved for general errors. */
 const (
-	CodeInvalidContentType = 1001
-	CodeInvalidJSONBody    = 1002
+	CodeInvalidRequestParams = 1000 // Invalid request parameters (body, query, path param, etc.)
+	CodeInvalidContentType   = 1001
+	CodeInvalidJSONBody      = 1002
 )
 
 /* Common Errors */

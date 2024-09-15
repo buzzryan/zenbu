@@ -9,6 +9,7 @@ import (
 	"github.com/buzzryan/zenbu/internal/logutil"
 	"github.com/buzzryan/zenbu/internal/user/domain"
 	"github.com/buzzryan/zenbu/internal/user/usecase"
+	"github.com/buzzryan/zenbu/internal/validutil"
 )
 
 // BasicSignupCtrl is a controller for basic signup.
@@ -17,8 +18,8 @@ type BasicSignupCtrl struct {
 }
 
 type BasicSignupReq struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" validate:"required,max=32,min=1"`
+	Password string `json:"password" validate:"required,password"`
 }
 
 func NewBasicSignupCtrl(uc usecase.BasicSignupUC) *BasicSignupCtrl {
@@ -31,16 +32,12 @@ const (
 
 func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
 	var reqBody BasicSignupReq
-	err := httputil.ParseJSONBody(req, &reqBody)
-	if err != nil {
+	if err := httputil.ParseJSONBody(req, &reqBody); err != nil {
 		return httputil.HandleParseJSONBodyError(req.Context(), w, err)
 	}
 
-	logutil.From(req.Context()).Info("Basic Signup", slog.Any("req", reqBody))
-
-	// fixme: use validator to reduce boilerplate
-	if reqBody.Username == "" || reqBody.Password == "" {
-		return httputil.ResponseError(w, http.StatusBadRequest, 0, "username and password is required")
+	if err := validutil.Validate(reqBody); err != nil {
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, err.Error())
 	}
 
 	res, err := b.uc.Execute(req.Context(), &usecase.SignupReq{
