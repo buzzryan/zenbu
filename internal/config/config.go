@@ -8,6 +8,7 @@ import (
 type Config struct {
 	JWSSigningKey string
 	MySQLConfig
+	DynamoConfig
 }
 
 type MySQLConfig struct {
@@ -21,6 +22,12 @@ type MySQLConfig struct {
 
 func (m *MySQLConfig) DSN() string {
 	return m.User + ":" + m.Password + "@tcp(" + m.Endpoint + ")/" + m.DBName + "?parseTime=true&loc=UTC&charset=utf8mb4"
+}
+
+type DynamoConfig struct {
+	// Endpoint is the endpoint for local DynamoDB. It is host:port.
+	// In production, it should be empty.
+	Endpoint string
 }
 
 // LoadConfigFromEnv initializes the configuration from environment variables.
@@ -37,6 +44,9 @@ func LoadConfigFromEnv() Config {
 			Password:   os.Getenv("MYSQL_PASSWORD"),
 			DBName:     os.Getenv("MYSQL_DATABASE"),
 			LogEnabled: mysqlLogEnabled,
+		},
+		DynamoConfig: DynamoConfig{
+			Endpoint: os.Getenv("DYNAMO_ENDPOINT"),
 		},
 	}
 }
