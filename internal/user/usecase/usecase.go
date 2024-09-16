@@ -27,11 +27,11 @@ type BasicSignupUC interface {
 }
 
 type basicSignupUC struct {
-	userRepo     domain.UserRepo
+	userRepo     UserRepo
 	tokenManager TokenManager
 }
 
-func NewBasicSignupUC(userRepo domain.UserRepo, manager TokenManager) BasicSignupUC {
+func NewBasicSignupUC(userRepo UserRepo, manager TokenManager) BasicSignupUC {
 	return &basicSignupUC{userRepo: userRepo, tokenManager: manager}
 }
 
@@ -70,7 +70,7 @@ type AuthenticateUC interface {
 }
 
 type authenticateUC struct {
-	userRepo domain.UserRepo
+	userRepo UserRepo
 	manager  TokenManager
 }
 
@@ -96,6 +96,44 @@ func (a authenticateUC) Execute(ctx context.Context, token string) (*Authenticat
 	return &AuthenticateRes{User: u, RefreshedToken: refreshedToken}, nil
 }
 
-func NewAuthenticateUC(userRepo domain.UserRepo, manager TokenManager) AuthenticateUC {
+func NewAuthenticateUC(userRepo UserRepo, manager TokenManager) AuthenticateUC {
 	return &authenticateUC{userRepo: userRepo, manager: manager}
+}
+
+type BasicLoginRes struct {
+	Token string
+}
+
+type BasicLoginUC interface {
+	Execute(ctx context.Context, username, password string) (*BasicLoginRes, error)
+}
+
+type basicLoginUC struct {
+	userRepo     UserRepo
+	tokenManager TokenManager
+}
+
+func (b basicLoginUC) Execute(ctx context.Context, username, password string) (*BasicLoginRes, error) {
+	u, err := b.userRepo.GetByName(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+
+	if !u.Password.Compare(password) {
+		return nil, ErrInvalidPassword
+	}
+
+	token, err := b.tokenManager.Generate(&Claims{
+		UserID:    u.ID,
+		ExpiresAt: time.Now().Add(TokenExpiresIn),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &BasicLoginRes{Token: token}, nil
+}
+
+func NewBasicLoginUC(userRepo UserRepo, manager TokenManager) BasicLoginUC {
+	return &basicLoginUC{userRepo: userRepo, tokenManager: manager}
 }

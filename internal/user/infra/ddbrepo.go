@@ -11,6 +11,7 @@ import (
 
 	"github.com/buzzryan/zenbu/internal/nosqlutil"
 	"github.com/buzzryan/zenbu/internal/user/domain"
+	"github.com/buzzryan/zenbu/internal/user/usecase"
 )
 
 const (
@@ -19,12 +20,13 @@ const (
 	userProfileSortKey     = "PROFILE"
 )
 
+// dynamoUserRepo is the implementation of usecase.UserRepo interface using AWS DynamoDB. (adapter)
 type dynamoUserRepo struct {
 	ddb       *dynamo.DB
 	tableName string
 }
 
-func NewDynamoUserRepo(ddb *dynamo.DB, tableName string) domain.UserRepo {
+func NewDynamoUserRepo(ddb *dynamo.DB, tableName string) usecase.UserRepo {
 	return &dynamoUserRepo{ddb: ddb, tableName: tableName}
 }
 
@@ -75,16 +77,16 @@ func buildUsername(u *domain.User) *Username {
 	}
 }
 
-func (ur *dynamoUserRepo) Create(ctx context.Context, u *domain.User) (*domain.User, error) {
-	createUsername := ur.ddb.Table(ur.tableName).
+func (dur *dynamoUserRepo) Create(ctx context.Context, u *domain.User) (*domain.User, error) {
+	createUsername := dur.ddb.Table(dur.tableName).
 		Put(buildUsername(u)).IncludeItemInCondCheckFail(true).If("attribute_not_exists(pk)")
-	createUserProfile := ur.ddb.Table(ur.tableName).
+	createUserProfile := dur.ddb.Table(dur.tableName).
 		Put(buildUserProfile(u)).If("attribute_not_exists(pk)")
 
-	err := ur.ddb.WriteTx().Put(createUsername).Put(createUserProfile).Run(ctx)
+	err := dur.ddb.WriteTx().Put(createUsername).Put(createUserProfile).Run(ctx)
 
 	if nosqlutil.IsConditionalCheckFailed(err) {
-		return nil, domain.ErrUsernameAlreadyExists
+		return nil, usecase.ErrUsernameAlreadyExists
 	}
 	if err != nil {
 		return nil, fmt.Errorf("dynamoUserRepo.Create failed: %w", err)
@@ -93,19 +95,34 @@ func (ur *dynamoUserRepo) Create(ctx context.Context, u *domain.User) (*domain.U
 	return u, nil
 }
 
-func (ur *dynamoUserRepo) Get(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+func (dur *dynamoUserRepo) Get(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	userProfile := &UserProfile{}
-	err := ur.ddb.Table(ur.tableName).
+	err := dur.ddb.Table(dur.tableName).
 		Get("pk", userPartitionKeyPrefix+"#"+id.String()).
 		Range("sk", dynamo.Equal, userProfileSortKey).
 		One(ctx, &userProfile)
 
 	if errors.Is(err, dynamo.ErrNotFound) {
-		return nil, domain.ErrUserNotFound
+		return nil, usecase.ErrUserNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("dynamoUserRepo.Get failed: %w", err)
 	}
 
 	return userProfile.toDomainEntity(), nil
+}
+
+func (dur *dynamoUserRepo) GetByName(ctx context.Context, username string) (*domain.User, error) {
+	un := &Username{}
+	err := dur.ddb.Table(dur.tableName).
+		Get("pk", usernamePartitionKey).
+		Range("sk", dynamo.Equal, username).One(ctx, &un)
+	if errors.Is(err, dynamo.ErrNotFound) {
+		return nil, usecase.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("dynamoUserRepo.GetByName failed: %w", err)
+	}
+
+	return dur.Get(ctx, uuid.MustParse(un.UserID))
 }

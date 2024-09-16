@@ -7,7 +7,6 @@ import (
 
 	"github.com/buzzryan/zenbu/internal/httputil"
 	"github.com/buzzryan/zenbu/internal/logutil"
-	"github.com/buzzryan/zenbu/internal/user/domain"
 	"github.com/buzzryan/zenbu/internal/user/usecase"
 	"github.com/buzzryan/zenbu/internal/validutil"
 )
@@ -25,6 +24,10 @@ type BasicSignupCtrl struct {
 type BasicSignupReq struct {
 	Username string `json:"username" validate:"required,max=32,min=1"`
 	Password string `json:"password" validate:"required,password"`
+}
+
+type BasicSignupRes struct {
+	Token string `json:"token"`
 }
 
 func NewBasicSignupCtrl(uc usecase.BasicSignupUC) *BasicSignupCtrl {
@@ -45,7 +48,7 @@ func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error
 		Username: reqBody.Username,
 		Password: reqBody.Password,
 	})
-	if errors.Is(err, domain.ErrUsernameAlreadyExists) {
+	if errors.Is(err, usecase.ErrUsernameAlreadyExists) {
 		return httputil.ResponseError(w, http.StatusConflict, CodeUsernameAlreadyExists, "username already exists")
 	}
 	if err != nil {
@@ -53,7 +56,7 @@ func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error
 		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
 	}
 
-	return httputil.ResponseJSON(w, http.StatusOK, res)
+	return httputil.ResponseJSON(w, http.StatusOK, &BasicSignupRes{Token: res.Token})
 }
 
 type AuthenticateCtrl struct {
@@ -83,7 +86,7 @@ func (a *AuthenticateCtrl) Handle(w http.ResponseWriter, req *http.Request) erro
 	if errors.Is(err, usecase.ErrTokenExpired) {
 		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeTokenExpired, err.Error())
 	}
-	if errors.Is(err, domain.ErrUserNotFound) {
+	if errors.Is(err, usecase.ErrUserNotFound) {
 		return httputil.ResponseError(w, http.StatusNotFound, CodeUserNotFound, err.Error())
 	}
 	if err != nil {
@@ -96,4 +99,43 @@ func (a *AuthenticateCtrl) Handle(w http.ResponseWriter, req *http.Request) erro
 		UserID:   res.User.ID.String(),
 		Username: res.User.Username,
 	})
+}
+
+type BasicLoginCtrl struct {
+	uc usecase.BasicLoginUC
+}
+
+func NewBasicLoginCtrl(uc usecase.BasicLoginUC) *BasicLoginCtrl {
+	return &BasicLoginCtrl{uc: uc}
+}
+
+type BasicLoginReq struct {
+	Username string `json:"username" validate:"required,max=32,min=1"`
+	Password string `json:"password" validate:"required,password"`
+}
+
+type BasicLoginRes struct {
+	Token string `json:"token"`
+}
+
+func (b *BasicLoginCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
+	var reqBody BasicLoginReq
+	if err := httputil.ParseJSONBody(req, &reqBody); err != nil {
+		return httputil.HandleParseJSONBodyError(req.Context(), w, err)
+	}
+
+	if err := validutil.Validate(reqBody); err != nil {
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, err.Error())
+	}
+
+	res, err := b.uc.Execute(req.Context(), reqBody.Username, reqBody.Password)
+	if errors.Is(err, usecase.ErrUserNotFound) || errors.Is(err, usecase.ErrInvalidPassword) {
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, "invalid credentials")
+	}
+	if err != nil {
+		logutil.From(req.Context()).Error("failed to execute Basic Signup", slog.Any("err", err))
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+	}
+
+	return httputil.ResponseJSON(w, http.StatusOK, &BasicLoginRes{Token: res.Token})
 }
