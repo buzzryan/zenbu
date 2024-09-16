@@ -83,8 +83,11 @@ func (ur *dynamoUserRepo) Create(ctx context.Context, u *domain.User) (*domain.U
 
 	err := ur.ddb.WriteTx().Put(createUsername).Put(createUserProfile).Run(ctx)
 
+	if nosqlutil.IsConditionalCheckFailed(err) {
+		return nil, domain.ErrUsernameAlreadyExists
+	}
 	if err != nil {
-		return nil, fmt.Errorf("dynamoUserRepo.Create failed: put username: %w", err)
+		return nil, fmt.Errorf("dynamoUserRepo.Create failed: %w", err)
 	}
 
 	return u, nil
@@ -96,6 +99,7 @@ func (ur *dynamoUserRepo) Get(ctx context.Context, id uuid.UUID) (*domain.User, 
 		Get("pk", userPartitionKeyPrefix+"#"+id.String()).
 		Range("sk", dynamo.Equal, userProfileSortKey).
 		One(ctx, &userProfile)
+
 	if errors.Is(err, dynamo.ErrNotFound) {
 		return nil, domain.ErrUserNotFound
 	}
