@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/buzzryan/zenbu/internal/logutil"
+	"github.com/buzzryan/zenbu/internal/commonutil/logutil"
 )
 
 // WithGlobalMiddlewares wraps http.Handler with global(common) middlewares.

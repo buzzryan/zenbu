@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/guregu/dynamo/v2"
 
-	"github.com/buzzryan/zenbu/internal/nosqlutil"
+	nosqlutil2 "github.com/buzzryan/zenbu/internal/commonutil/nosqlutil"
 	"github.com/buzzryan/zenbu/internal/user/domain"
 	"github.com/buzzryan/zenbu/internal/user/usecase"
 )
@@ -31,7 +31,7 @@ func NewDynamoUserRepo(ddb *dynamo.DB, tableName string) usecase.UserRepo {
 }
 
 type UserProfile struct {
-	nosqlutil.CommonSchema
+	nosqlutil2.CommonSchema
 
 	Username  string    `dynamo:"un"`
 	Password  string    `dynamo:"pw"`
@@ -51,7 +51,7 @@ func (un *UserProfile) toDomainEntity() *domain.User {
 
 func buildUserProfile(u *domain.User) *UserProfile {
 	return &UserProfile{
-		CommonSchema: nosqlutil.CommonSchema{
+		CommonSchema: nosqlutil2.CommonSchema{
 			PartitionKey: userPartitionKeyPrefix + "#" + u.ID.String(),
 			SortKey:      userProfileSortKey,
 		},
@@ -63,13 +63,13 @@ func buildUserProfile(u *domain.User) *UserProfile {
 }
 
 type Username struct {
-	nosqlutil.CommonSchema
+	nosqlutil2.CommonSchema
 	UserID string `dynamo:"uid"`
 }
 
 func buildUsername(u *domain.User) *Username {
 	return &Username{
-		CommonSchema: nosqlutil.CommonSchema{
+		CommonSchema: nosqlutil2.CommonSchema{
 			PartitionKey: usernamePartitionKey,
 			SortKey:      u.Username,
 		},
@@ -85,7 +85,7 @@ func (dur *dynamoUserRepo) Create(ctx context.Context, u *domain.User) (*domain.
 
 	err := dur.ddb.WriteTx().Put(createUsername).Put(createUserProfile).Run(ctx)
 
-	if nosqlutil.IsConditionalCheckFailed(err) {
+	if nosqlutil2.IsConditionalCheckFailed(err) {
 		return nil, usecase.ErrUsernameAlreadyExists
 	}
 	if err != nil {

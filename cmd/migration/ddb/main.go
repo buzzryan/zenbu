@@ -6,8 +6,8 @@ import (
 
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 
+	"github.com/buzzryan/zenbu/internal/commonutil/nosqlutil"
 	"github.com/buzzryan/zenbu/internal/config"
-	"github.com/buzzryan/zenbu/internal/nosqlutil"
 )
 
 func main() {

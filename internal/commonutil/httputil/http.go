@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/buzzryan/zenbu/internal/logutil"
+	"github.com/buzzryan/zenbu/internal/commonutil/logutil"
 )
 
 // ParseJSONBody is a helper function to parse JSON request body.

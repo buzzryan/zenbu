@@ -3,8 +3,8 @@ package controller
 import (
 	"net/http"
 
-	"github.com/buzzryan/zenbu/internal/httputil"
-	"github.com/buzzryan/zenbu/internal/storageutil"
+	"github.com/buzzryan/zenbu/internal/commonutil/httputil"
+	"github.com/buzzryan/zenbu/internal/commonutil/storageutil"
 	"github.com/buzzryan/zenbu/internal/user/usecase"
 )
 

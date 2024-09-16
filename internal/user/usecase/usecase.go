@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/buzzryan/zenbu/internal/storageutil"
+	"github.com/buzzryan/zenbu/internal/commonutil/storageutil"
 	"github.com/buzzryan/zenbu/internal/user/domain"
 )
 
