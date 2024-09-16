@@ -15,7 +15,7 @@ import (
 
 const (
 	userPartitionKeyPrefix = "USER"
-	usernameSortKeyPrefix  = "USERNAME"
+	usernamePartitionKey   = "USERNAME"
 	userProfileSortKey     = "PROFILE"
 )
 
@@ -62,27 +62,27 @@ func buildUserProfile(u *domain.User) *UserProfile {
 
 type Username struct {
 	nosqlutil.CommonSchema
+	UserID string `dynamo:"uid"`
 }
 
 func buildUsername(u *domain.User) *Username {
 	return &Username{
 		CommonSchema: nosqlutil.CommonSchema{
-			PartitionKey: userPartitionKeyPrefix + "#" + u.ID.String(),
-			SortKey:      usernameSortKeyPrefix + "#" + u.Username,
+			PartitionKey: usernamePartitionKey,
+			SortKey:      u.Username,
 		},
+		UserID: u.ID.String(),
 	}
 }
 
 func (ur *dynamoUserRepo) Create(ctx context.Context, u *domain.User) (*domain.User, error) {
 	createUsername := ur.ddb.Table(ur.tableName).
-		Put(buildUsername(u)).If("attribute_not_exists(pk) AND attribute_not_exists(sk)")
+		Put(buildUsername(u)).IncludeItemInCondCheckFail(true).If("attribute_not_exists(pk)")
 	createUserProfile := ur.ddb.Table(ur.tableName).
-		Put(buildUserProfile(u)).If("attribute_not_exists(pk) AND attribute_not_exists(sk)")
+		Put(buildUserProfile(u)).If("attribute_not_exists(pk)")
 
 	err := ur.ddb.WriteTx().Put(createUsername).Put(createUserProfile).Run(ctx)
-	if errors.Is(err, dynamo.ErrNoInput) {
-		return nil, domain.ErrUsernameAlreadyExists
-	}
+
 	if err != nil {
 		return nil, fmt.Errorf("dynamoUserRepo.Create failed: put username: %w", err)
 	}
