@@ -14,7 +14,7 @@ import (
 	"github.com/buzzryan/zenbu/internal/config"
 	"github.com/buzzryan/zenbu/internal/httputil"
 	"github.com/buzzryan/zenbu/internal/logutil"
-	"github.com/buzzryan/zenbu/internal/rdbutil"
+	"github.com/buzzryan/zenbu/internal/nosqlutil"
 	userctrl "github.com/buzzryan/zenbu/internal/user/controller"
 	userinfra "github.com/buzzryan/zenbu/internal/user/infra"
 )
@@ -23,12 +23,12 @@ func main() {
 	logutil.InitDefaultLogger()
 
 	cfg := config.LoadConfigFromEnv()
-	rdb := rdbutil.MustConnectMySQL(cfg.MySQLConfig)
-	slog.Info("mysql connected")
+	ddb := nosqlutil.MustConnectDDB(cfg.DynamoConfig)
+	slog.Info("dynamoDB connected")
 
 	mux := http.NewServeMux()
 
-	userRepo := userinfra.NewUserRepo(rdb)
+	userRepo := userinfra.NewDynamoUserRepo(ddb, cfg.TableName)
 	tokenManager := userinfra.NewJWSTokenManager(cfg.JWSSigningKey)
 	userctrl.Init(&userctrl.InitOpts{
 		Mux:          mux,

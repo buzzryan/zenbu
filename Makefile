@@ -12,6 +12,9 @@ local-ddb:
 local-db-migrate:
 	set -a; source .env; set +a; export MYSQL_ENDPOINT=localhost:3306; go run cmd/migration/rdb/main.go
 
+ddb:
+	set -a; source .env; set +a; go run cmd/migration/ddb/main.go
+
 local:
 	set -a; source .env; set +a; export MYSQL_ENDPOINT=localhost:3306; go run cmd/server/main.go
 

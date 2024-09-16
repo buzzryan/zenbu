@@ -39,3 +39,11 @@ func MustConnectDDB(ddbConfig config.DynamoConfig) *dynamo.DB {
 
 	return dynamo.New(cfg, dynamodb.WithEndpointResolverV2(&endpointResolver{endpoint: ddbConfig.Endpoint}))
 }
+
+// CommonSchema is a common schema for DynamoDB.
+// Zenbu uses a single-table design.
+// https://aws.amazon.com/blogs/compute/creating-a-single-table-design-with-amazon-dynamodb/
+type CommonSchema struct {
+	PartitionKey string `dynamo:"pk,hash"`
+	SortKey      string `dynamo:"sk,range"`
+}

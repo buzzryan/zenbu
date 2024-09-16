@@ -36,7 +36,13 @@ func NewBasicSignupUC(userRepo domain.UserRepo, manager TokenManager) BasicSignu
 }
 
 func (b *basicSignupUC) Execute(ctx context.Context, req *SignupReq) (*SignupRes, error) {
-	newUser := &domain.User{ID: uuid.New(), Username: req.Username, Password: domain.NewPassword(req.Password)}
+	newUser := &domain.User{
+		ID:        uuid.New(),
+		Username:  req.Username,
+		Password:  domain.NewPassword(req.Password),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 	newUser, err := b.userRepo.Create(ctx, newUser)
 	if err != nil {
 		return nil, err

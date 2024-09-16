@@ -18,6 +18,10 @@ import (
 // It is formatted as "<algorithm>$<iterations>$<salt>$<hash>".
 type Password string
 
+func (p Password) String() string {
+	return string(p)
+}
+
 const (
 	keyLen           = 32
 	hashIterations   = 120000
@@ -55,6 +59,8 @@ func (p Password) Compare(plain string) bool {
 type User struct {
 	ID uuid.UUID
 
-	Username string
-	Password Password
+	Username  string
+	Password  Password
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
