@@ -5,7 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+
+	"github.com/buzzryan/zenbu/internal/config"
 )
 
 type s3Storage struct {
@@ -17,14 +20,17 @@ type s3Storage struct {
 	publicCloudfrontEndpoint string
 }
 
-func NewS3Storage(client *s3.Client, presignClient *s3.PresignClient, bucket, privateDir, publicDir, publicCloudfrontEndpoint string) Storage {
+func NewS3Storage(awsCfg aws.Config, cfg config.S3Config) Storage {
+	client := s3.NewFromConfig(awsCfg)
+	presignClient := s3.NewPresignClient(client)
+
 	return &s3Storage{
 		client:                   client,
 		presignClient:            presignClient,
-		bucket:                   bucket,
-		privateDir:               privateDir,
-		publicDir:                publicDir,
-		publicCloudfrontEndpoint: publicCloudfrontEndpoint,
+		bucket:                   cfg.Bucket,
+		privateDir:               cfg.PrivateDir,
+		publicDir:                cfg.PublicDir,
+		publicCloudfrontEndpoint: cfg.PublicCloudfrontEndpoint,
 	}
 }
 
@@ -39,7 +45,7 @@ func (s *s3Storage) objectKey(scope Scope, filepath string) string {
 	}
 }
 
-func (s *s3Storage) GetUploadURL(ctx context.Context, scope Scope, filepath string) (url string, err error) {
+func (s *s3Storage) CreateUploadURL(ctx context.Context, scope Scope, filepath string) (url string, err error) {
 	if filepath == "" {
 		return "", errors.New("filepath required")
 	}
@@ -49,13 +55,10 @@ func (s *s3Storage) GetUploadURL(ctx context.Context, scope Scope, filepath stri
 		return "", errors.New("invalid scope")
 	}
 
-	expiresAt := time.Now().Add(1 * time.Minute)
-
 	res, err := s.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
-		Bucket:  &s.bucket,
-		Key:     &key,
-		Expires: &expiresAt,
-	})
+		Bucket: &s.bucket,
+		Key:    &key,
+	}, s3.WithPresignExpires(time.Minute))
 	if err != nil {
 		return "", err
 	}
@@ -74,5 +77,5 @@ func (s *s3Storage) GetPublicFileURL(ctx context.Context, filepath string) (stri
 		return "", err
 	}
 
-	return s.publicCloudfrontEndpoint + "/" + key, nil
+	return s.publicCloudfrontEndpoint + "/" + filepath, nil
 }

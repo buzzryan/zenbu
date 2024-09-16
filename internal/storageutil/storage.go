@@ -20,9 +20,9 @@ type Storage interface {
 	// Google cloud storage also supports this feature by using `signed URLs`.
 	// Azure Blob storage also supports this feature by using `shared access signatures`.
 
-	// GetUploadURL returns a signed URL for uploading a file to the storage.
+	// CreateUploadURL returns a signed URL for uploading a file to the storage.
 	// filepath is the path of the file to be uploaded.
-	GetUploadURL(ctx context.Context, scope Scope, filepath string) (url string, err error)
+	CreateUploadURL(ctx context.Context, scope Scope, filepath string) (url string, err error)
 
 	// GetPublicFileURL returns a public URL for accessing a file in the storage.
 	GetPublicFileURL(ctx context.Context, filepath string) (url string, err error)

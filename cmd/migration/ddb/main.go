@@ -4,17 +4,22 @@ import (
 	"context"
 	"log"
 
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
+
 	"github.com/buzzryan/zenbu/internal/config"
 	"github.com/buzzryan/zenbu/internal/nosqlutil"
 )
 
 func main() {
-	cfg := config.LoadConfigFromEnv()
-	ddb := nosqlutil.MustConnectDDB(cfg.DynamoConfig)
-
 	ctx := context.Background()
+	cfg := config.LoadConfigFromEnv()
+	awsCfg, err := awscfg.LoadDefaultConfig(ctx)
+	if err != nil {
+		log.Panicf("failed to load AWS config: %v", err)
+	}
+	ddb := nosqlutil.ConnectDDB(awsCfg, cfg.DynamoConfig)
 
-	err := ddb.CreateTable(cfg.TableName, &nosqlutil.CommonSchema{}).Run(ctx)
+	err = ddb.CreateTable(cfg.TableName, &nosqlutil.CommonSchema{}).Run(ctx)
 	if err != nil {
 		log.Panicf("failed to create table: %v", err)
 	}

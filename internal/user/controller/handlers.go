@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/buzzryan/zenbu/internal/httputil"
 	"github.com/buzzryan/zenbu/internal/logutil"
 	"github.com/buzzryan/zenbu/internal/user/usecase"
@@ -138,4 +140,58 @@ func (b *BasicLoginCtrl) Handle(w http.ResponseWriter, req *http.Request) error 
 	}
 
 	return httputil.ResponseJSON(w, http.StatusOK, &BasicLoginRes{Token: res.Token})
+}
+
+type CreateProfileImageUploadURLCtrl struct {
+	uc usecase.CreateProfileImagUploadURLUC
+}
+
+type CreateProfileImageUploadURLRes struct {
+	URL string `json:"url"`
+}
+
+func NewCreateProfileImageUploadURLCtrl(uc usecase.CreateProfileImagUploadURLUC) *CreateProfileImageUploadURLCtrl {
+	return &CreateProfileImageUploadURLCtrl{uc: uc}
+}
+
+func (c *CreateProfileImageUploadURLCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
+	token, err := httputil.GetBearerToken(req)
+	if err != nil {
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
+	}
+
+	url, err := c.uc.Execute(req.Context(), token)
+	if err != nil {
+		logutil.From(req.Context()).Error("failed to execute CreateProfileImagUploadURL", slog.Any("err", err))
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+	}
+
+	return httputil.ResponseJSON(w, http.StatusOK, &CreateProfileImageUploadURLRes{URL: url})
+}
+
+type GetProfileImageURLCtrl struct {
+	uc usecase.GetMyProfileImageURLUC
+}
+
+func NewGetProfileImageURLCtrl(uc usecase.GetMyProfileImageURLUC) *GetProfileImageURLCtrl {
+	return &GetProfileImageURLCtrl{uc: uc}
+}
+
+func (g *GetProfileImageURLCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
+	userID := req.PathValue("id")
+	if userID == "" {
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, "user id required")
+	}
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, "invalid user id")
+	}
+
+	url, err := g.uc.Execute(req.Context(), parsedUserID)
+	if err != nil {
+		logutil.From(req.Context()).Error("failed to execute GetProfileImageURL", slog.Any("err", err))
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+	}
+
+	return httputil.ResponseJSON(w, http.StatusOK, &CreateProfileImageUploadURLRes{URL: url})
 }

@@ -2,10 +2,12 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/buzzryan/zenbu/internal/storageutil"
 	"github.com/buzzryan/zenbu/internal/user/domain"
 )
 
@@ -136,4 +138,59 @@ func (b basicLoginUC) Execute(ctx context.Context, username, password string) (*
 
 func NewBasicLoginUC(userRepo UserRepo, manager TokenManager) BasicLoginUC {
 	return &basicLoginUC{userRepo: userRepo, tokenManager: manager}
+}
+
+// CreateProfileImagUploadURLUC returns a signed URL for uploading a profile image.
+type CreateProfileImagUploadURLUC interface {
+	Execute(ctx context.Context, token string) (url string, err error)
+}
+
+type createProfileImageUploadURL struct {
+	userRepo     UserRepo
+	tokenManager TokenManager
+	storage      storageutil.Storage
+}
+
+func NewCreateProfileImagUploadURLUC(userRepo UserRepo, tokenManager TokenManager, storage storageutil.Storage) CreateProfileImagUploadURLUC {
+	return &createProfileImageUploadURL{userRepo: userRepo, tokenManager: tokenManager, storage: storage}
+}
+
+func userProfileImageKey(userID uuid.UUID) string {
+	return "profile/image/" + userID.String()
+}
+
+func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string) (string, error) {
+	claims, err := c.tokenManager.Parse(token)
+	if err != nil {
+		return "", err
+	}
+
+	url, err := c.storage.CreateUploadURL(ctx, storageutil.Public, userProfileImageKey(claims.UserID))
+	if err != nil {
+		return "", err
+	}
+
+	return url, nil
+}
+
+type GetMyProfileImageURLUC interface {
+	Execute(ctx context.Context, id uuid.UUID) (url string, err error)
+}
+
+type getMyProfileImageURLUC struct {
+	userRepo UserRepo
+	storage  storageutil.Storage
+}
+
+func NewGetMyProfileImageURLUC(userRepo UserRepo, storage storageutil.Storage) GetMyProfileImageURLUC {
+	return &getMyProfileImageURLUC{userRepo: userRepo, storage: storage}
+}
+
+func (g *getMyProfileImageURLUC) Execute(ctx context.Context, id uuid.UUID) (string, error) {
+	url, err := g.storage.GetPublicFileURL(ctx, userProfileImageKey(id))
+	if err != nil {
+		return "", fmt.Errorf("failed to get image url: %w", err)
+	}
+
+	return url, nil
 }

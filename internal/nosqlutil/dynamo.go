@@ -2,11 +2,10 @@ package nosqlutil
 
 import (
 	"context"
-	"log"
 	"log/slog"
 	"net/url"
 
-	awscfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	smithy "github.com/aws/smithy-go/endpoints"
 	"github.com/guregu/dynamo/v2"
@@ -27,17 +26,12 @@ func (e *endpointResolver) ResolveEndpoint(ctx context.Context, _ dynamodb.Endpo
 	return smithy.Endpoint{URI: *u}, nil
 }
 
-func MustConnectDDB(ddbConfig config.DynamoConfig) *dynamo.DB {
-	cfg, err := awscfg.LoadDefaultConfig(context.Background())
-	if err != nil {
-		log.Panicf("unable to load aws sdk config, %v", err)
-	}
-
+func ConnectDDB(awsCfg aws.Config, ddbConfig config.DynamoConfig) *dynamo.DB {
 	if ddbConfig.Endpoint == "" {
-		return dynamo.New(cfg)
+		return dynamo.New(awsCfg)
 	}
 
-	return dynamo.New(cfg, dynamodb.WithEndpointResolverV2(&endpointResolver{endpoint: ddbConfig.Endpoint}))
+	return dynamo.New(awsCfg, dynamodb.WithEndpointResolverV2(&endpointResolver{endpoint: ddbConfig.Endpoint}))
 }
 
 // CommonSchema is a common schema for DynamoDB.

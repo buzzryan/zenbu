@@ -11,10 +11,13 @@ import (
 	"syscall"
 	"time"
 
+	awscfg "github.com/aws/aws-sdk-go-v2/config"
+
 	"github.com/buzzryan/zenbu/internal/config"
 	"github.com/buzzryan/zenbu/internal/httputil"
 	"github.com/buzzryan/zenbu/internal/logutil"
 	"github.com/buzzryan/zenbu/internal/nosqlutil"
+	"github.com/buzzryan/zenbu/internal/storageutil"
 	userctrl "github.com/buzzryan/zenbu/internal/user/controller"
 	userinfra "github.com/buzzryan/zenbu/internal/user/infra"
 )
@@ -23,8 +26,16 @@ func main() {
 	logutil.InitDefaultLogger()
 
 	cfg := config.LoadConfigFromEnv()
-	ddb := nosqlutil.MustConnectDDB(cfg.DynamoConfig)
+
+	awsCfg, err := awscfg.LoadDefaultConfig(context.Background())
+	if err != nil {
+		log.Panicf("failed to load AWS config: %v", err)
+	}
+
+	ddb := nosqlutil.ConnectDDB(awsCfg, cfg.DynamoConfig)
 	slog.Info("dynamoDB connected")
+
+	storage := storageutil.NewS3Storage(awsCfg, cfg.S3Config)
 
 	mux := http.NewServeMux()
 
@@ -34,6 +45,7 @@ func main() {
 		Mux:          mux,
 		UserRepo:     userRepo,
 		TokenManager: tokenManager,
+		Storage:      storage,
 	})
 
 	server := &http.Server{
