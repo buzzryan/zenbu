@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	httputil2 "github.com/buzzryan/zenbu/internal/commonutil/httputil"
+	"github.com/buzzryan/zenbu/internal/commonutil/httputil"
 	"github.com/buzzryan/zenbu/internal/commonutil/logutil"
 	"github.com/buzzryan/zenbu/internal/commonutil/validutil"
 	"github.com/buzzryan/zenbu/internal/user/usecase"
@@ -38,12 +38,12 @@ func NewBasicSignupCtrl(uc usecase.BasicSignupUC) *BasicSignupCtrl {
 
 func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
 	var reqBody BasicSignupReq
-	if err := httputil2.ParseJSONBody(req, &reqBody); err != nil {
-		return httputil2.HandleParseJSONBodyError(req.Context(), w, err)
+	if err := httputil.ParseJSONBody(req, &reqBody); err != nil {
+		return httputil.HandleParseJSONBodyError(req.Context(), w, err)
 	}
 
 	if err := validutil.Validate(reqBody); err != nil {
-		return httputil2.ResponseError(w, http.StatusBadRequest, httputil2.CodeInvalidRequestParams, err.Error())
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, err.Error())
 	}
 
 	res, err := b.uc.Execute(req.Context(), &usecase.SignupReq{
@@ -51,14 +51,14 @@ func (b *BasicSignupCtrl) Handle(w http.ResponseWriter, req *http.Request) error
 		Password: reqBody.Password,
 	})
 	if errors.Is(err, usecase.ErrUsernameAlreadyExists) {
-		return httputil2.ResponseError(w, http.StatusConflict, CodeUsernameAlreadyExists, "username already exists")
+		return httputil.ResponseError(w, http.StatusConflict, CodeUsernameAlreadyExists, "username already exists")
 	}
 	if err != nil {
 		logutil.From(req.Context()).Error("failed to execute Basic Signup", slog.Any("err", err))
-		return httputil2.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
 	}
 
-	return httputil2.ResponseJSON(w, http.StatusOK, &BasicSignupRes{Token: res.Token})
+	return httputil.ResponseJSON(w, http.StatusOK, &BasicSignupRes{Token: res.Token})
 }
 
 type AuthenticateCtrl struct {
@@ -76,27 +76,27 @@ type AuthenticateRes struct {
 }
 
 func (a *AuthenticateCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
-	token, err := httputil2.GetBearerToken(req)
+	token, err := httputil.GetBearerToken(req)
 	if err != nil {
-		return httputil2.ResponseError(w, http.StatusUnauthorized, httputil2.CodeUnauthenticated, err.Error())
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
 	}
 
 	res, err := a.uc.Execute(req.Context(), token)
 	if errors.Is(err, usecase.ErrInvalidToken) {
-		return httputil2.ResponseError(w, http.StatusUnauthorized, httputil2.CodeUnauthenticated, err.Error())
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
 	}
 	if errors.Is(err, usecase.ErrTokenExpired) {
-		return httputil2.ResponseError(w, http.StatusUnauthorized, httputil2.CodeTokenExpired, err.Error())
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeTokenExpired, err.Error())
 	}
 	if errors.Is(err, usecase.ErrUserNotFound) {
-		return httputil2.ResponseError(w, http.StatusNotFound, CodeUserNotFound, err.Error())
+		return httputil.ResponseError(w, http.StatusNotFound, CodeUserNotFound, err.Error())
 	}
 	if err != nil {
 		logutil.From(req.Context()).Error("failed to execute Authenticate", slog.Any("err", err))
-		return httputil2.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
 	}
 
-	return httputil2.ResponseJSON(w, http.StatusOK, &AuthenticateRes{
+	return httputil.ResponseJSON(w, http.StatusOK, &AuthenticateRes{
 		Token:    res.RefreshedToken,
 		UserID:   res.User.ID.String(),
 		Username: res.User.Username,
@@ -122,24 +122,24 @@ type BasicLoginRes struct {
 
 func (b *BasicLoginCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
 	var reqBody BasicLoginReq
-	if err := httputil2.ParseJSONBody(req, &reqBody); err != nil {
-		return httputil2.HandleParseJSONBodyError(req.Context(), w, err)
+	if err := httputil.ParseJSONBody(req, &reqBody); err != nil {
+		return httputil.HandleParseJSONBodyError(req.Context(), w, err)
 	}
 
 	if err := validutil.Validate(reqBody); err != nil {
-		return httputil2.ResponseError(w, http.StatusBadRequest, httputil2.CodeInvalidRequestParams, err.Error())
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, err.Error())
 	}
 
 	res, err := b.uc.Execute(req.Context(), reqBody.Username, reqBody.Password)
 	if errors.Is(err, usecase.ErrUserNotFound) || errors.Is(err, usecase.ErrInvalidPassword) {
-		return httputil2.ResponseError(w, http.StatusUnauthorized, httputil2.CodeUnauthenticated, "invalid credentials")
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, "invalid credentials")
 	}
 	if err != nil {
 		logutil.From(req.Context()).Error("failed to execute Basic Signup", slog.Any("err", err))
-		return httputil2.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
 	}
 
-	return httputil2.ResponseJSON(w, http.StatusOK, &BasicLoginRes{Token: res.Token})
+	return httputil.ResponseJSON(w, http.StatusOK, &BasicLoginRes{Token: res.Token})
 }
 
 type CreateProfileImageUploadURLCtrl struct {
@@ -155,18 +155,18 @@ func NewCreateProfileImageUploadURLCtrl(uc usecase.CreateProfileImagUploadURLUC)
 }
 
 func (c *CreateProfileImageUploadURLCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
-	token, err := httputil2.GetBearerToken(req)
+	token, err := httputil.GetBearerToken(req)
 	if err != nil {
-		return httputil2.ResponseError(w, http.StatusUnauthorized, httputil2.CodeUnauthenticated, err.Error())
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
 	}
 
 	url, err := c.uc.Execute(req.Context(), token)
 	if err != nil {
 		logutil.From(req.Context()).Error("failed to execute CreateProfileImagUploadURL", slog.Any("err", err))
-		return httputil2.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
 	}
 
-	return httputil2.ResponseJSON(w, http.StatusOK, &CreateProfileImageUploadURLRes{URL: url})
+	return httputil.ResponseJSON(w, http.StatusOK, &CreateProfileImageUploadURLRes{URL: url})
 }
 
 type GetProfileImageURLCtrl struct {
@@ -180,18 +180,18 @@ func NewGetProfileImageURLCtrl(uc usecase.GetMyProfileImageURLUC) *GetProfileIma
 func (g *GetProfileImageURLCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
 	userID := req.PathValue("id")
 	if userID == "" {
-		return httputil2.ResponseError(w, http.StatusBadRequest, httputil2.CodeInvalidRequestParams, "user id required")
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, "user id required")
 	}
 	parsedUserID, err := uuid.Parse(userID)
 	if err != nil {
-		return httputil2.ResponseError(w, http.StatusBadRequest, httputil2.CodeInvalidRequestParams, "invalid user id")
+		return httputil.ResponseError(w, http.StatusBadRequest, httputil.CodeInvalidRequestParams, "invalid user id")
 	}
 
 	url, err := g.uc.Execute(req.Context(), parsedUserID)
 	if err != nil {
 		logutil.From(req.Context()).Error("failed to execute GetProfileImageURL", slog.Any("err", err))
-		return httputil2.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
 	}
 
-	return httputil2.ResponseJSON(w, http.StatusOK, &CreateProfileImageUploadURLRes{URL: url})
+	return httputil.ResponseJSON(w, http.StatusOK, &CreateProfileImageUploadURLRes{URL: url})
 }
