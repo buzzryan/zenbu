@@ -2,7 +2,10 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"slices"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -155,8 +158,8 @@ func NewCreateProfileImagUploadURLUC(userRepo UserRepo, tokenManager TokenManage
 	return &createProfileImageUploadURL{userRepo: userRepo, tokenManager: tokenManager, storage: storage}
 }
 
-func userProfileImageKey(userID uuid.UUID) string {
-	return "profile/image/" + userID.String()
+func userProfileImageDir(userID uuid.UUID) string {
+	return "profiles/" + userID.String() + "/images"
 }
 
 func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string) (string, error) {
@@ -165,7 +168,8 @@ func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string)
 		return "", err
 	}
 
-	url, err := c.storage.CreateUploadURL(ctx, storageutil.Public, userProfileImageKey(claims.UserID))
+	url, err := c.storage.CreateUploadURL(ctx, storageutil.Public,
+		userProfileImageDir(claims.UserID)+"/"+strconv.FormatInt(time.Now().UnixNano(), 10))
 	if err != nil {
 		return "", err
 	}
@@ -173,24 +177,59 @@ func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string)
 	return url, nil
 }
 
-type GetMyProfileImageURLUC interface {
-	Execute(ctx context.Context, id uuid.UUID) (url string, err error)
+type GetProfileImageURLUC interface {
+	Execute(ctx context.Context, userID uuid.UUID) (url string, err error)
 }
 
-type getMyProfileImageURLUC struct {
+type getProfileImageURLUC struct {
 	userRepo UserRepo
 	storage  storageutil.Storage
 }
 
-func NewGetMyProfileImageURLUC(userRepo UserRepo, storage storageutil.Storage) GetMyProfileImageURLUC {
-	return &getMyProfileImageURLUC{userRepo: userRepo, storage: storage}
+func NewGetProfileImageURLUC(userRepo UserRepo, storage storageutil.Storage) GetProfileImageURLUC {
+	return &getProfileImageURLUC{userRepo: userRepo, storage: storage}
 }
 
-func (g *getMyProfileImageURLUC) Execute(ctx context.Context, id uuid.UUID) (string, error) {
-	url, err := g.storage.GetPublicFileURL(ctx, userProfileImageKey(id))
+func (g *getProfileImageURLUC) Execute(ctx context.Context, userID uuid.UUID) (string, error) {
+	files, err := g.storage.ListFiles(ctx, storageutil.Public, userProfileImageDir(userID))
 	if err != nil {
 		return "", fmt.Errorf("failed to get image url: %w", err)
 	}
 
-	return url, nil
+	if len(files) == 0 {
+		return "", errors.New("image not found")
+	}
+
+	slices.SortFunc(files, func(i, j *storageutil.File) int {
+		return j.UpdatedAt.Compare(i.UpdatedAt)
+	})
+
+	return g.storage.GetPublicFileURL(ctx, files[0].Filepath)
+}
+
+type GetMeUC interface {
+	Execute(ctx context.Context, token string) (*domain.User, error)
+}
+
+type getMeUC struct {
+	userRepo     UserRepo
+	tokenManager TokenManager
+}
+
+func (g getMeUC) Execute(ctx context.Context, token string) (*domain.User, error) {
+	claims, err := g.tokenManager.Parse(token)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := g.userRepo.Get(ctx, claims.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
+func NewGetMeUC(userRepo UserRepo, tokenManager TokenManager) GetMeUC {
+	return &getMeUC{userRepo: userRepo, tokenManager: tokenManager}
 }

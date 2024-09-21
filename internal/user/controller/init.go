@@ -28,8 +28,11 @@ func Init(opts *InitOpts) {
 	createProfileImageUploadUC := usecase.NewCreateProfileImagUploadURLUC(opts.UserRepo, opts.TokenManager, opts.Storage)
 	createProfileImageUploadURLCtrl := NewCreateProfileImageUploadURLCtrl(createProfileImageUploadUC)
 
-	getProfileImageURLUC := usecase.NewGetMyProfileImageURLUC(opts.UserRepo, opts.Storage)
+	getProfileImageURLUC := usecase.NewGetProfileImageURLUC(opts.UserRepo, opts.Storage)
 	getProfileImageURLCtrl := NewGetProfileImageURLCtrl(getProfileImageURLUC)
+
+	getMeUC := usecase.NewGetMeUC(opts.UserRepo, opts.TokenManager)
+	getMeCtrl := NewGetMeCtrl(getMeUC)
 
 	// register routers
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/signup", basicSignupCtrl.Handle)
@@ -37,4 +40,5 @@ func Init(opts *InitOpts) {
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/login", basicLoginCtrl.Handle)
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/me/profile/image", createProfileImageUploadURLCtrl.Handle)
 	httputil.RegisterHandler(opts.Mux, http.MethodGet, "/users/{id}/profile/image", getProfileImageURLCtrl.Handle)
+	httputil.RegisterHandler(opts.Mux, http.MethodGet, "/me", getMeCtrl.Handle)
 }

@@ -1,6 +1,9 @@
 package storageutil
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Scope int
 
@@ -14,6 +17,12 @@ const (
 	Public
 )
 
+type File struct {
+	Scope     Scope
+	Filepath  string
+	UpdatedAt time.Time
+}
+
 type Storage interface {
 	// Many storage services provide a way to generate a signed URL for uploading an object.
 	// AWS S3 supports this features by using `pre-signed URLs`.
@@ -26,4 +35,6 @@ type Storage interface {
 
 	// GetPublicFileURL returns a public URL for accessing a file in the storage.
 	GetPublicFileURL(ctx context.Context, filepath string) (url string, err error)
+
+	ListFiles(ctx context.Context, scope Scope, dirPath string) ([]*File, error)
 }
