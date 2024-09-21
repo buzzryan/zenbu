@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -168,7 +169,7 @@ func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string)
 	}
 
 	url, err := c.storage.CreateUploadURL(ctx, storageutil.Public,
-		userProfileImageDir(claims.UserID)+"/"+time.Now().Format("20060102150405.999999999"))
+		userProfileImageDir(claims.UserID)+"/"+strconv.FormatInt(time.Now().UnixNano(), 10))
 	if err != nil {
 		return "", err
 	}
@@ -204,4 +205,31 @@ func (g *getProfileImageURLUC) Execute(ctx context.Context, userID uuid.UUID) (s
 	})
 
 	return g.storage.GetPublicFileURL(ctx, files[0].Filepath)
+}
+
+type GetMeUC interface {
+	Execute(ctx context.Context, token string) (*domain.User, error)
+}
+
+type getMeUC struct {
+	userRepo     UserRepo
+	tokenManager TokenManager
+}
+
+func (g getMeUC) Execute(ctx context.Context, token string) (*domain.User, error) {
+	claims, err := g.tokenManager.Parse(token)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := g.userRepo.Get(ctx, claims.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
+func NewGetMeUC(userRepo UserRepo, tokenManager TokenManager) GetMeUC {
+	return &getMeUC{userRepo: userRepo, tokenManager: tokenManager}
 }

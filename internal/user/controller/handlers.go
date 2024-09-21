@@ -195,3 +195,34 @@ func (g *GetProfileImageURLCtrl) Handle(w http.ResponseWriter, req *http.Request
 
 	return httputil.ResponseJSON(w, http.StatusOK, &CreateProfileImageUploadURLRes{URL: url})
 }
+
+type GetMeCtrl struct {
+	uc usecase.GetMeUC
+}
+
+func NewGetMeCtrl(uc usecase.GetMeUC) *GetMeCtrl {
+	return &GetMeCtrl{uc: uc}
+}
+
+type GetMeRes struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
+func (g *GetMeCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
+	token, err := httputil.GetBearerToken(req)
+	if err != nil {
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
+	}
+
+	u, err := g.uc.Execute(req.Context(), token)
+	if err != nil {
+		logutil.From(req.Context()).Error("failed to execute CreateProfileImagUploadURL", slog.Any("err", err))
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+	}
+
+	return httputil.ResponseJSON(w, http.StatusOK, &GetMeRes{
+		ID:       u.ID.String(),
+		Username: u.Username,
+	})
+}

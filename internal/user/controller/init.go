@@ -31,10 +31,14 @@ func Init(opts *InitOpts) {
 	getProfileImageURLUC := usecase.NewGetProfileImageURLUC(opts.UserRepo, opts.Storage)
 	getProfileImageURLCtrl := NewGetProfileImageURLCtrl(getProfileImageURLUC)
 
+	getMeUC := usecase.NewGetMeUC(opts.UserRepo, opts.TokenManager)
+	getMeCtrl := NewGetMeCtrl(getMeUC)
+
 	// register routers
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/signup", basicSignupCtrl.Handle)
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/authenticate", authenticateCtrl.Handle)
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/login", basicLoginCtrl.Handle)
 	httputil.RegisterHandler(opts.Mux, http.MethodPost, "/me/profile/image", createProfileImageUploadURLCtrl.Handle)
 	httputil.RegisterHandler(opts.Mux, http.MethodGet, "/users/{id}/profile/image", getProfileImageURLCtrl.Handle)
+	httputil.RegisterHandler(opts.Mux, http.MethodGet, "/me", getMeCtrl.Handle)
 }
