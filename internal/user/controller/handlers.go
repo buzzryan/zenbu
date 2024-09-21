@@ -170,10 +170,10 @@ func (c *CreateProfileImageUploadURLCtrl) Handle(w http.ResponseWriter, req *htt
 }
 
 type GetProfileImageURLCtrl struct {
-	uc usecase.GetMyProfileImageURLUC
+	uc usecase.GetProfileImageURLUC
 }
 
-func NewGetProfileImageURLCtrl(uc usecase.GetMyProfileImageURLUC) *GetProfileImageURLCtrl {
+func NewGetProfileImageURLCtrl(uc usecase.GetProfileImageURLUC) *GetProfileImageURLCtrl {
 	return &GetProfileImageURLCtrl{uc: uc}
 }
 

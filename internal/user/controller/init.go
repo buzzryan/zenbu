@@ -28,7 +28,7 @@ func Init(opts *InitOpts) {
 	createProfileImageUploadUC := usecase.NewCreateProfileImagUploadURLUC(opts.UserRepo, opts.TokenManager, opts.Storage)
 	createProfileImageUploadURLCtrl := NewCreateProfileImageUploadURLCtrl(createProfileImageUploadUC)
 
-	getProfileImageURLUC := usecase.NewGetMyProfileImageURLUC(opts.UserRepo, opts.Storage)
+	getProfileImageURLUC := usecase.NewGetProfileImageURLUC(opts.UserRepo, opts.Storage)
 	getProfileImageURLCtrl := NewGetProfileImageURLCtrl(getProfileImageURLUC)
 
 	// register routers

@@ -173,21 +173,21 @@ func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string)
 	return url, nil
 }
 
-type GetMyProfileImageURLUC interface {
-	Execute(ctx context.Context, id uuid.UUID) (url string, err error)
+type GetProfileImageURLUC interface {
+	Execute(ctx context.Context, userID uuid.UUID) (url string, err error)
 }
 
-type getMyProfileImageURLUC struct {
+type getProfileImageURLUC struct {
 	userRepo UserRepo
 	storage  storageutil.Storage
 }
 
-func NewGetMyProfileImageURLUC(userRepo UserRepo, storage storageutil.Storage) GetMyProfileImageURLUC {
-	return &getMyProfileImageURLUC{userRepo: userRepo, storage: storage}
+func NewGetProfileImageURLUC(userRepo UserRepo, storage storageutil.Storage) GetProfileImageURLUC {
+	return &getProfileImageURLUC{userRepo: userRepo, storage: storage}
 }
 
-func (g *getMyProfileImageURLUC) Execute(ctx context.Context, id uuid.UUID) (string, error) {
-	url, err := g.storage.GetPublicFileURL(ctx, userProfileImageKey(id))
+func (g *getProfileImageURLUC) Execute(ctx context.Context, userID uuid.UUID) (string, error) {
+	url, err := g.storage.GetPublicFileURL(ctx, userProfileImageKey(userID))
 	if err != nil {
 		return "", fmt.Errorf("failed to get image url: %w", err)
 	}
