@@ -2,7 +2,9 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -155,8 +157,8 @@ func NewCreateProfileImagUploadURLUC(userRepo UserRepo, tokenManager TokenManage
 	return &createProfileImageUploadURL{userRepo: userRepo, tokenManager: tokenManager, storage: storage}
 }
 
-func userProfileImageKey(userID uuid.UUID) string {
-	return "profile/image/" + userID.String()
+func userProfileImageDir(userID uuid.UUID) string {
+	return "profiles/" + userID.String() + "/images"
 }
 
 func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string) (string, error) {
@@ -165,7 +167,8 @@ func (c *createProfileImageUploadURL) Execute(ctx context.Context, token string)
 		return "", err
 	}
 
-	url, err := c.storage.CreateUploadURL(ctx, storageutil.Public, userProfileImageKey(claims.UserID))
+	url, err := c.storage.CreateUploadURL(ctx, storageutil.Public,
+		userProfileImageDir(claims.UserID)+"/"+time.Now().Format("20060102150405.999999999"))
 	if err != nil {
 		return "", err
 	}
@@ -187,10 +190,18 @@ func NewGetProfileImageURLUC(userRepo UserRepo, storage storageutil.Storage) Get
 }
 
 func (g *getProfileImageURLUC) Execute(ctx context.Context, userID uuid.UUID) (string, error) {
-	url, err := g.storage.GetPublicFileURL(ctx, userProfileImageKey(userID))
+	files, err := g.storage.ListFiles(ctx, storageutil.Public, userProfileImageDir(userID))
 	if err != nil {
 		return "", fmt.Errorf("failed to get image url: %w", err)
 	}
 
-	return url, nil
+	if len(files) == 0 {
+		return "", errors.New("image not found")
+	}
+
+	slices.SortFunc(files, func(i, j *storageutil.File) int {
+		return j.UpdatedAt.Compare(i.UpdatedAt)
+	})
+
+	return g.storage.GetPublicFileURL(ctx, files[0].Filepath)
 }
