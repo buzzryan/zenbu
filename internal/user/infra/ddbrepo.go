@@ -37,6 +37,8 @@ type UserProfile struct {
 	Password  string    `dynamo:"pw"`
 	CreatedAt time.Time `dynamo:"ca"`
 	UpdatedAt time.Time `dynamo:"ua"`
+
+	Bio string `dynamo:"bio"`
 }
 
 func (un *UserProfile) toDomainEntity() *domain.User {
@@ -46,6 +48,7 @@ func (un *UserProfile) toDomainEntity() *domain.User {
 		Password:  domain.Password(un.Password),
 		CreatedAt: un.CreatedAt,
 		UpdatedAt: un.UpdatedAt,
+		Bio:       un.Bio,
 	}
 }
 

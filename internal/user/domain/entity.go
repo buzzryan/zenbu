@@ -63,4 +63,6 @@ type User struct {
 	Password  Password
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	Bio string
 }

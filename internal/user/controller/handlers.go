@@ -207,6 +207,7 @@ func NewGetMeCtrl(uc usecase.GetMeUC) *GetMeCtrl {
 type GetMeRes struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
+	Bio      string `json:"bio"`
 }
 
 func (g *GetMeCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
@@ -224,5 +225,6 @@ func (g *GetMeCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
 	return httputil.ResponseJSON(w, http.StatusOK, &GetMeRes{
 		ID:       u.ID.String(),
 		Username: u.Username,
+		Bio:      u.Bio,
 	})
 }
