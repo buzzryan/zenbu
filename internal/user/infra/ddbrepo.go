@@ -129,3 +129,22 @@ func (dur *dynamoUserRepo) GetByName(ctx context.Context, username string) (*dom
 
 	return dur.Get(ctx, uuid.MustParse(un.UserID))
 }
+
+func (dur *dynamoUserRepo) Update(ctx context.Context, u *domain.User) (*domain.User, error) {
+	var res UserProfile
+	err := dur.ddb.Table(dur.tableName).
+		Update("pk", userPartitionKeyPrefix+"#"+u.ID.String()).
+		Range("sk", userProfileSortKey).
+		Set("bio", u.Bio).
+		Set("ua", u.UpdatedAt).
+		Value(ctx, &res) // ALL_NEW - Returns all the attributes of the item, as they appear after the UpdateItem operation.
+
+	if errors.Is(err, dynamo.ErrNotFound) {
+		return nil, usecase.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return res.toDomainEntity(), nil
+}

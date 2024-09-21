@@ -233,3 +233,40 @@ func (g getMeUC) Execute(ctx context.Context, token string) (*domain.User, error
 func NewGetMeUC(userRepo UserRepo, tokenManager TokenManager) GetMeUC {
 	return &getMeUC{userRepo: userRepo, tokenManager: tokenManager}
 }
+
+type UpdateProfileReq struct {
+	Bio *string
+}
+
+type UpdateMyProfileUC interface {
+	Execute(ctx context.Context, token string, req *UpdateProfileReq) (*domain.User, error)
+}
+
+type updateMyProfileUC struct {
+	userRepo     UserRepo
+	tokenManager TokenManager
+}
+
+func (um updateMyProfileUC) Execute(ctx context.Context, token string, req *UpdateProfileReq) (*domain.User, error) {
+	claims, err := um.tokenManager.Parse(token)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := um.userRepo.Get(ctx, claims.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Bio != nil {
+		u.Bio = *req.Bio
+	}
+
+	u.UpdatedAt = time.Now()
+
+	return um.userRepo.Update(ctx, u)
+}
+
+func NewUpdateMyProfileUC(userRepo UserRepo, tokenManager TokenManager) UpdateMyProfileUC {
+	return &updateMyProfileUC{userRepo: userRepo, tokenManager: tokenManager}
+}

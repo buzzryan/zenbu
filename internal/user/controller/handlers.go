@@ -204,10 +204,15 @@ func NewGetMeCtrl(uc usecase.GetMeUC) *GetMeCtrl {
 	return &GetMeCtrl{uc: uc}
 }
 
-type GetMeRes struct {
-	ID       string `json:"id"`
+type User struct {
+	UserID   string `json:"user_id"`
 	Username string `json:"username"`
 	Bio      string `json:"bio"`
+}
+
+type GetMeRes struct {
+	ID string `json:"id"`
+	User
 }
 
 func (g *GetMeCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
@@ -223,8 +228,55 @@ func (g *GetMeCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
 	}
 
 	return httputil.ResponseJSON(w, http.StatusOK, &GetMeRes{
-		ID:       u.ID.String(),
-		Username: u.Username,
-		Bio:      u.Bio,
+		ID: u.ID.String(),
+		User: User{
+			UserID:   u.ID.String(),
+			Username: u.Username,
+			Bio:      u.Bio,
+		},
+	})
+}
+
+type UpdateMyProfileCtrl struct {
+	uc usecase.UpdateMyProfileUC
+}
+
+func NewUpdateMyProfileCtrl(uc usecase.UpdateMyProfileUC) *UpdateMyProfileCtrl {
+	return &UpdateMyProfileCtrl{uc: uc}
+}
+
+type UpdateMyProfileReq struct {
+	Bio *string `json:"bio,omitempty" validate:"max=300"`
+}
+
+type UpdateMyProfileRes struct {
+	User
+}
+
+func (u *UpdateMyProfileCtrl) Handle(w http.ResponseWriter, req *http.Request) error {
+	token, err := httputil.GetBearerToken(req)
+	if err != nil {
+		return httputil.ResponseError(w, http.StatusUnauthorized, httputil.CodeUnauthenticated, err.Error())
+	}
+
+	var reqBody UpdateMyProfileReq
+	if err := httputil.ParseJSONBody(req, &reqBody); err != nil {
+		return httputil.HandleParseJSONBodyError(req.Context(), w, err)
+	}
+
+	updatedUser, err := u.uc.Execute(req.Context(), token, &usecase.UpdateProfileReq{
+		Bio: reqBody.Bio,
+	})
+	if err != nil {
+		logutil.From(req.Context()).Error("failed to execute UpdateMyProfile", slog.Any("err", err))
+		return httputil.ResponseError(w, http.StatusInternalServerError, 0, "internal server error")
+	}
+
+	return httputil.ResponseJSON(w, http.StatusOK, &UpdateMyProfileRes{
+		User: User{
+			UserID:   updatedUser.ID.String(),
+			Username: updatedUser.Username,
+			Bio:      updatedUser.Bio,
+		},
 	})
 }

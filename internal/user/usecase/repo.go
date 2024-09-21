@@ -13,4 +13,5 @@ type UserRepo interface {
 	Create(ctx context.Context, u *domain.User) (*domain.User, error)
 	Get(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByName(ctx context.Context, name string) (*domain.User, error)
+	Update(ctx context.Context, u *domain.User) (*domain.User, error)
 }
